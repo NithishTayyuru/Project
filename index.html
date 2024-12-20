@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Shopping Assistant</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        
+        * {
+            font-family: 'Inter', sans-serif;
+        }
+
+        .chat-container {
+            scrollbar-width: thin;
+            scrollbar-color: #4F46E5 #EEF2FF;
+        }
+
+        .chat-container::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .chat-container::-webkit-scrollbar-track {
+            background: #EEF2FF;
+        }
+
+        .chat-container::-webkit-scrollbar-thumb {
+            background-color: #4F46E5;
+            border-radius: 20px;
+        }
+
+        .message {
+            opacity: 0;
+            transform: translateY(20px);
+            animation: fadeIn 0.3s ease-out forwards;
+        }
+
+        @keyframes fadeIn {
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .typing-indicator {
+            display: inline-flex;
+            align-items: center;
+            margin: 0 0.5rem;
+        }
+
+        .typing-indicator span {
+            width: 8px;
+            height: 8px;
+            margin: 0 2px;
+            background-color: #4F46E5;
+            border-radius: 50%;
+            display: inline-block;
+            animation: bounce 1.4s infinite ease-in-out;
+        }
+
+        .typing-indicator span:nth-child(1) { animation-delay: -0.32s; }
+        .typing-indicator span:nth-child(2) { animation-delay: -0.16s; }
+
+        @keyframes bounce {
+            0%, 80%, 100% { transform: scale(0); }
+            40% { transform: scale(1.0); }
+        }
+
+        .product-card {
+            transition: transform 0.2s ease-in-out;
+        }
+
+        .product-card:hover {
+            transform: translateY(-5px);
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <div class="min-h-screen flex flex-col">
+        <!-- Header -->
+        <header class="bg-white shadow-sm">
+            <div class="max-w-7xl mx-auto px-4 py-4 sm:px-6 lg:px-8 flex justify-between items-center">
+                <div class="flex items-center">
+                    <i class="fas fa-robot text-indigo-600 text-2xl mr-2"></i>
+                    <h1 class="text-xl font-semibold text-gray-900">AI Shopping Assistant</h1>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            <!-- Chat Container -->
+            <div id="chat-container" class="max-w-4xl mx-auto bg-white rounded-lg shadow-md">
+                <div class="flex flex-col h-[600px]">
+                    <!-- Chat Messages -->
+                    <div class="flex-1 p-4 overflow-y-auto chat-container" id="chat-messages">
+                        <!-- Messages will be inserted here -->
+                    </div>
+
+                    <!-- Chat Input -->
+                    <div class="border-t border-gray-200 p-4 bg-gray-50">
+                        <div class="flex space-x-4">
+                            <input type="text" id="message-input"
+                                class="flex-1 px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500"
+                                placeholder="Type your message...">
+                            <button id="send-button"
+                                class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                                <i class="fas fa-paper-plane mr-2"></i>
+                                Send
+                            </button>
+                            <button id="reset-button"
+                                class="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                                <i class="fas fa-redo mr-2"></i>
+                                Reset
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- Footer -->
+        <footer class="bg-white border-t border-gray-200">
+            <div class="max-w-7xl mx-auto px-4 py-4 sm:px-6 lg:px-8">
+                <p class="text-center text-sm text-gray-500">
+                    © 2024 AI Shopping Assistant. All rights reserved.
+                </p>
+            </div>
+        </footer>
+    </div>
+
+    <script>
+        const API_URL = 'http://localhost:5000';
+        
+        // DOM Elements
+        const chatContainer = document.getElementById('chat-container');
+        const chatMessages = document.getElementById('chat-messages');
+        const sendButton = document.getElementById('send-button');
+        const resetButton = document.getElementById('reset-button');
+        const messageInput = document.getElementById('message-input');
+
+        // Send message to chat
+        sendButton.addEventListener('click', async () => {
+            const message = messageInput.value.trim();
+            if (!message) return;
+
+            const messageElement = document.createElement('div');
+            messageElement.classList.add('message', 'text-gray-800', 'mb-2');
+            messageElement.textContent = `You: ${message}`;
+            chatMessages.appendChild(messageElement);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+
+            messageInput.value = '';
+
+            // Send to backend
+            try {
+                const response = await fetch(`${API_URL}/chat`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ message })
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    const aiMessageElement = document.createElement('div');
+                    aiMessageElement.classList.add('message', 'text-indigo-600', 'mb-2');
+                    aiMessageElement.textContent = `AI: ${data.message}`;
+                    chatMessages.appendChild(aiMessageElement);
+                    chatMessages.scrollTop = chatMessages.scrollHeight;
+                } else {
+                    alert('Error sending message');
+                }
+            } catch (err) {
+                alert('Error communicating with server');
+            }
+        });
+
+        // Reset Chat
+        resetButton.addEventListener('click', () => {
+            chatMessages.innerHTML = '';
+        });
+    </script>
+</body>
+</html>
